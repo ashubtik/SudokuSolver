@@ -13,6 +13,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -62,8 +63,8 @@ public class Utility {
                 .collect(Collectors.toCollection(ArrayList::new)));
     }
 
-    public static void setSingleValues(Table table) {
-        System.out.println(iteration + " iteration started");
+    public static void setSingletonValues(Table table) {
+        System.out.println(iteration + " singleton iteration started");
         iteration++;
         getAllCellsByRowOrder(table)
                 .stream()
@@ -74,6 +75,22 @@ public class Utility {
                     cell.setValue(resultNumber);
                     removeNumberFromPotentialValues(table, cell, resultNumber);
                 });
+    }
+
+    public static void setSingleEntityNumberValues(Table table) {
+        System.out.println(iteration + "  single entity number iteration started");
+        for (BaseEntity entity : getListOfEntities(table)) {
+            for (Cell cell : entity.getCells()) {
+                if (cell.getValue() == 0) {
+                    for (Integer number : cell.getPossibleValues()) {
+                        if (Collections.frequency(cell.getPossibleValues(), number) == 1) {
+                            cell.setValue(number);
+                            removeNumberFromPotentialValues(table, cell, number);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private static void removeNumberFromPotentialValues(Table table, Cell cell, int number) {
@@ -121,7 +138,7 @@ public class Utility {
                 .toList();
     }
 
-    private static List<BaseEntity> getListOfEntities(Table table) {
+    public static List<BaseEntity> getListOfEntities(Table table) {
         return Stream.of(table.getColumns(), table.getRows(), table.getSquares())
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());

@@ -130,7 +130,8 @@ public class Main {
             var emptyCellsNumberBefore = getEmptyCellsNumber(table);
             System.out.println("Empty cells before iteration - " + emptyCellsNumberBefore);
 
-            setSingleValues(table);
+            setSingletonValues(table);
+            System.out.println("Empty cells after singleton iteration - " + getEmptyCellsNumber(table));
 
             var emptyCellsNumberAfter = getEmptyCellsNumber(table);
             System.out.println("Empty cell after iteration - " + emptyCellsNumberAfter);
@@ -138,7 +139,10 @@ public class Main {
             if (emptyCellsNumberBefore == emptyCellsNumberAfter) {
                 break;
             }
+
+            setSingleEntityNumberValues(table);
+            System.out.println("Empty cells after entity iteration - " + getEmptyCellsNumber(table));
+            System.out.println(table);
         }
-        System.out.println(table);
     }
 }
