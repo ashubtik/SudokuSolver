@@ -4,10 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.Assert;
-import solver.entities.BaseEntity;
-import solver.entities.Cell;
-import solver.entities.Coordinates;
-import solver.entities.Table;
+import solver.entities.*;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -21,7 +18,6 @@ import java.util.stream.Stream;
 
 @Slf4j
 public class Utility {
-    private static int iteration = 1;
 
     public static boolean isBetween1And9(int number) {
         return number > 0 && number < 10;
@@ -64,8 +60,7 @@ public class Utility {
     }
 
     public static void setSingletonValues(Table table) {
-        System.out.println(iteration + " singleton iteration started");
-        iteration++;
+        setPotentialValuesForTable(table);
         getAllCellsByRowOrder(table)
                 .stream()
                 .filter(cell -> cell.getValue() == 0)
@@ -73,24 +68,71 @@ public class Utility {
                 .forEach(cell -> {
                     var resultNumber = cell.getPossibleValues().get(0);
                     cell.setValue(resultNumber);
-                    removeNumberFromPotentialValues(table, cell, resultNumber);
+                    setPotentialValuesForTable(table);
                 });
     }
 
     public static void setSingleEntityNumberValues(Table table) {
-        System.out.println(iteration + "  single entity number iteration started");
-        for (BaseEntity entity : getListOfEntities(table)) {
-            for (Cell cell : entity.getCells()) {
+        setPotentialValuesForTable(table);
+        for (Column column : table.getColumns()) {
+            for (Cell cell : column.getCells()) {
                 if (cell.getValue() == 0) {
-                    for (Integer number : cell.getPossibleValues()) {
-                        if (Collections.frequency(cell.getPossibleValues(), number) == 1) {
-                            cell.setValue(number);
-                            removeNumberFromPotentialValues(table, cell, number);
+                    for (Integer value : cell.getPossibleValues()) {
+                        if (Collections.frequency(getPotentialValues(column), value) == 1) {
+                            cell.setValue(value);
+                            setPotentialValuesForTable(table);
+                            break;
                         }
                     }
                 }
             }
         }
+        for (solver.entities.Row row : table.getRows()) {
+            for (Cell cell : row.getCells()) {
+                if (cell.getValue() == 0) {
+                    for (Integer value : cell.getPossibleValues()) {
+                        if (Collections.frequency(getPotentialValues(row), value) == 1) {
+                            cell.setValue(value);
+                            setPotentialValuesForTable(table);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        for (Square square : table.getSquares()) {
+            for (Cell cell : square.getCells()) {
+                if (cell.getValue() == 0) {
+                    for (Integer value : cell.getPossibleValues()) {
+                        if (Collections.frequency(getPotentialValues(square), value) == 1) {
+                            cell.setValue(value);
+                            setPotentialValuesForTable(table);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+//        for (BaseEntity entity : getListOfEntities(table)) {
+//            for (Cell cell : entity.getCells()) {
+//                if (cell.getValue() == 0) {
+//                    for (Integer number : cell.getPossibleValues()) {
+//                        if (Collections.frequency(getPotentialValues(entity), number) == 1) {
+//                            cell.setValue(number);
+//                        }
+//                    }
+//                    setPotentialValuesForTable(table);
+//                }
+//            }
+//        }
+    }
+
+    private static List<Integer> getPotentialValues(BaseEntity entity) {
+        return entity.getCells()
+                .stream()
+                .filter(cell -> cell.getValue() == 0)
+                .flatMap(cell -> cell.getPossibleValues().stream())
+                .toList();
     }
 
     private static void removeNumberFromPotentialValues(Table table, Cell cell, int number) {

@@ -125,13 +125,12 @@ public class Main {
                 List.of(column1, column2, column3, column4, column5, column6, column7, column8, column9),
                 List.of(square1, square2, square3, square4, square5, square6, square7, square8, square9));
 
-        setPotentialValuesForTable(table);
         while (areEmptyCellsFound(table)) {
             var emptyCellsNumberBefore = getEmptyCellsNumber(table);
             System.out.println("Empty cells before iteration - " + emptyCellsNumberBefore);
 
             setSingletonValues(table);
-            System.out.println("Empty cells after singleton iteration - " + getEmptyCellsNumber(table));
+            setSingleEntityNumberValues(table);
 
             var emptyCellsNumberAfter = getEmptyCellsNumber(table);
             System.out.println("Empty cell after iteration - " + emptyCellsNumberAfter);
@@ -139,10 +138,7 @@ public class Main {
             if (emptyCellsNumberBefore == emptyCellsNumberAfter) {
                 break;
             }
-
-            setSingleEntityNumberValues(table);
-            System.out.println("Empty cells after entity iteration - " + getEmptyCellsNumber(table));
-            System.out.println(table);
         }
+        System.out.println(table);
     }
 }
