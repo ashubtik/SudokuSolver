@@ -6,7 +6,7 @@ import org.junit.Assert;
 import java.util.List;
 import java.util.Objects;
 
-import static solver.utils.Utility.isBetween0And9;
+import static solver.utils.Functions.isBetween0And9;
 
 @Data
 public class Cell {

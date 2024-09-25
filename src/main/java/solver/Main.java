@@ -1,15 +1,15 @@
 package solver;
 
 import solver.entities.*;
-import solver.utils.BlackMagic;
 
 import java.util.List;
 
-import static solver.utils.Utility.*;
+import static solver.utils.Functions.*;
 
 public class Main {
     public static void main(String[] args) {
         var numbersList = readExcelTable();
+
         var cell1 = new Cell(new Coordinates(1, 1), numbersList.get(0));
         var cell2 = new Cell(new Coordinates(1, 2), numbersList.get(1));
         var cell3 = new Cell(new Coordinates(1, 3), numbersList.get(2));
@@ -127,14 +127,15 @@ public class Main {
                 List.of(square1, square2, square3, square4, square5, square6, square7, square8, square9));
 
         setPotentialValuesForTable(table);
-        BlackMagic.resolveBoard(table);
+        resolveBoard(table);
 
         if (getEmptyCellsNumber(table) == 0) {
             System.out.println("SUCCESS - SUDOKU BOARD IS RESOLVED!");
         } else {
             System.out.println("SUDOKU BOARD CAN NOT BE RESOLVED FAIRLY - BLACK MAGIC NEEDED...");
-            BlackMagic.prohibitedTrick(table, 1);
+            prohibitedTrick(table, 1);
         }
+
         if (getEmptyCellsNumber(table) == 0) {
             System.out.println("SUCCESS - SUDOKU BOARD IS RESOLVED WITH BLACK MAGIC!");
         } else {
