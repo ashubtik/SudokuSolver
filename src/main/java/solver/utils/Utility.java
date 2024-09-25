@@ -4,14 +4,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.Assert;
-import solver.entities.*;
+import solver.entities.BaseEntity;
+import solver.entities.Cell;
+import solver.entities.Coordinates;
+import solver.entities.Table;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -60,7 +60,6 @@ public class Utility {
     }
 
     public static void setSingletonValues(Table table) {
-        setPotentialValuesForTable(table);
         getAllCellsByRowOrder(table)
                 .stream()
                 .filter(cell -> cell.getValue() == 0)
@@ -68,63 +67,116 @@ public class Utility {
                 .forEach(cell -> {
                     var resultNumber = cell.getPossibleValues().get(0);
                     cell.setValue(resultNumber);
-                    setPotentialValuesForTable(table);
+                    System.out.println("Setting singleton value " + resultNumber + " for cell " + cell.getCoordinates());
+                    removeNumberFromPotentialValues(table, cell, resultNumber);
                 });
     }
 
     public static void setSingleEntityNumberValues(Table table) {
-        setPotentialValuesForTable(table);
-        for (Column column : table.getColumns()) {
-            for (Cell cell : column.getCells()) {
+        for (BaseEntity entity : getListOfEntities(table)) {
+            for (Cell cell : entity.getCells()) {
                 if (cell.getValue() == 0) {
-                    for (Integer value : cell.getPossibleValues()) {
-                        if (Collections.frequency(getPotentialValues(column), value) == 1) {
-                            cell.setValue(value);
-                            setPotentialValuesForTable(table);
+                    for (Integer number : cell.getPossibleValues()) {
+                        if (Collections.frequency(getPotentialValues(entity), number) == 1) {
+                            cell.setValue(number);
+                            System.out.println("Setting single entity value " + number + " for cell " + cell.getCoordinates());
+                            removeNumberFromPotentialValues(table, cell, number);
                             break;
                         }
                     }
                 }
             }
         }
-        for (solver.entities.Row row : table.getRows()) {
-            for (Cell cell : row.getCells()) {
-                if (cell.getValue() == 0) {
-                    for (Integer value : cell.getPossibleValues()) {
-                        if (Collections.frequency(getPotentialValues(row), value) == 1) {
-                            cell.setValue(value);
-                            setPotentialValuesForTable(table);
-                            break;
+    }
+
+    public static void removeOverlappingPairs(Table table) {
+        getListOfEntities(table).forEach(entity -> {
+            var set = new HashSet<List<Integer>>();
+            entity.getCells()
+                    .stream()
+                    .filter(cell -> cell.getValue() == 0)
+                    .map(Cell::getPossibleValues)
+                    .filter(possibleValues -> possibleValues.size() == 2)
+                    .filter(possibleValues -> !set.add(possibleValues))
+                    .forEach(possibleValues -> removeNumbersFromEntityPotentialValues(entity, possibleValues));
+        });
+    }
+
+    public static void removeOverlappingCombinations(Table table) {
+        var combinationsNumber = 3;
+        getListOfEntities(table)
+                .stream()
+                .filter(entity -> entity.getCells()
+                        .stream()
+                        .filter(cell -> cell.getValue() == 0)
+                        .count() > combinationsNumber)
+                .forEach(entity -> {
+                    var cellCombinations = getCellsCombinations(entity.getCells()
+                            .stream()
+                            .filter(cell -> cell.getValue() == 0)
+                            .collect(Collectors.toCollection(ArrayList::new)), combinationsNumber);
+                    for (Set<Cell> combination : cellCombinations) {
+                        var potentialValuesSet = new HashSet<Integer>();
+                        for (Cell cell : combination) {
+                            potentialValuesSet.addAll(cell.getPossibleValues());
+                        }
+                        if (potentialValuesSet.size() == combinationsNumber) {
+                            excludeCombinationFromOtherCells(entity, combination);
+                            System.out.println("Removing combination " + potentialValuesSet + " from entity");
                         }
                     }
-                }
-            }
+                });
+    }
+
+    private static void excludeCombinationFromOtherCells(BaseEntity entity, Set<Cell> combination) {
+        var numbersToExclude = combination
+                .stream()
+                .flatMap(cell -> cell.getPossibleValues().stream())
+                .collect(Collectors.toCollection(HashSet::new));
+        var cellsToClear = entity.getCells()
+                .stream()
+                .filter(cell -> cell.getValue() == 0)
+                .collect(Collectors.toCollection(ArrayList::new));
+        cellsToClear.removeAll(combination);
+        cellsToClear.forEach(cellToClear -> {
+            var possibleValues = cellToClear.getPossibleValues();
+            possibleValues.removeAll(numbersToExclude);
+            cellToClear.setPossibleValues(possibleValues);
+        });
+    }
+
+    private static void subsetsOf(List<Cell> cells, int k, int index, Set<Cell> tempSet, List<Set<Cell>> finalSet) {
+        if (tempSet.size() == k) {
+            finalSet.add(new HashSet<>(tempSet));
+            return;
         }
-        for (Square square : table.getSquares()) {
-            for (Cell cell : square.getCells()) {
-                if (cell.getValue() == 0) {
-                    for (Integer value : cell.getPossibleValues()) {
-                        if (Collections.frequency(getPotentialValues(square), value) == 1) {
-                            cell.setValue(value);
-                            setPotentialValuesForTable(table);
-                            break;
-                        }
+        if (index == cells.size())
+            return;
+        var cell = cells.get(index);
+        tempSet.add(cell);
+        subsetsOf(cells, k, index + 1, tempSet, finalSet);
+        tempSet.remove(cell);
+        subsetsOf(cells, k, index + 1, tempSet, finalSet);
+    }
+
+    private static List<Set<Cell>> getCellsCombinations(List<Cell> list, int k) {
+        List<Set<Cell>> result = new ArrayList<>();
+        subsetsOf(list, k, 0, new HashSet<Cell>(), result);
+        return result;
+    }
+
+    private static void removeNumbersFromEntityPotentialValues(BaseEntity entity, List<Integer> overlappingValues) {
+        entity.getCells()
+                .stream()
+                .filter(cell -> cell.getValue() == 0)
+                .forEach(cell -> {
+                    var possibleValues = cell.getPossibleValues();
+                    if (!possibleValues.equals(overlappingValues)) {
+                        System.out.println("Removing overlapping values " + overlappingValues + " for cell " + cell.getCoordinates());
+                        possibleValues.removeAll(overlappingValues);
+                        cell.setPossibleValues(possibleValues);
                     }
-                }
-            }
-        }
-//        for (BaseEntity entity : getListOfEntities(table)) {
-//            for (Cell cell : entity.getCells()) {
-//                if (cell.getValue() == 0) {
-//                    for (Integer number : cell.getPossibleValues()) {
-//                        if (Collections.frequency(getPotentialValues(entity), number) == 1) {
-//                            cell.setValue(number);
-//                        }
-//                    }
-//                    setPotentialValuesForTable(table);
-//                }
-//            }
-//        }
+                });
     }
 
     private static List<Integer> getPotentialValues(BaseEntity entity) {
@@ -135,7 +187,7 @@ public class Utility {
                 .toList();
     }
 
-    private static void removeNumberFromPotentialValues(Table table, Cell cell, int number) {
+    public static void removeNumberFromPotentialValues(Table table, Cell cell, int number) {
         removeNumberFromEntity(table.getRows(), cell, number);
         removeNumberFromEntity(table.getColumns(), cell, number);
         removeNumberFromEntity(table.getSquares(), cell, number);
@@ -184,6 +236,22 @@ public class Utility {
         return Stream.of(table.getColumns(), table.getRows(), table.getSquares())
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());
+    }
+
+    public static List<List<Integer>> getPotentialValuesLists(Table table) {
+        return getAllCellsByRowOrder(table)
+                .stream()
+                .filter(cell -> cell.getValue() == 0)
+                .map(Cell::getPossibleValues)
+                .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    public static long getPotentialValuesNumber(Table table) {
+        return getAllCellsByRowOrder(table)
+                .stream()
+                .filter(cell -> cell.getValue() == 0)
+                .mapToLong(cell -> cell.getPossibleValues().size())
+                .sum();
     }
 
     public static List<Integer> readExcelTable() {

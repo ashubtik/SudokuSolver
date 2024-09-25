@@ -1,6 +1,7 @@
 package solver;
 
 import solver.entities.*;
+import solver.utils.BlackMagic;
 
 import java.util.List;
 
@@ -125,19 +126,19 @@ public class Main {
                 List.of(column1, column2, column3, column4, column5, column6, column7, column8, column9),
                 List.of(square1, square2, square3, square4, square5, square6, square7, square8, square9));
 
-        while (areEmptyCellsFound(table)) {
-            var emptyCellsNumberBefore = getEmptyCellsNumber(table);
-            System.out.println("Empty cells before iteration - " + emptyCellsNumberBefore);
+        setPotentialValuesForTable(table);
+        BlackMagic.resolveBoard(table);
 
-            setSingletonValues(table);
-            setSingleEntityNumberValues(table);
-
-            var emptyCellsNumberAfter = getEmptyCellsNumber(table);
-            System.out.println("Empty cell after iteration - " + emptyCellsNumberAfter);
-
-            if (emptyCellsNumberBefore == emptyCellsNumberAfter) {
-                break;
-            }
+        if (getEmptyCellsNumber(table) == 0) {
+            System.out.println("SUCCESS - SUDOKU BOARD IS RESOLVED!");
+        } else {
+            System.out.println("SUDOKU BOARD CAN NOT BE RESOLVED FAIRLY - BLACK MAGIC NEEDED...");
+            BlackMagic.prohibitedTrick(table, 1);
+        }
+        if (getEmptyCellsNumber(table) == 0) {
+            System.out.println("SUCCESS - SUDOKU BOARD IS RESOLVED WITH BLACK MAGIC!");
+        } else {
+            System.out.println("FAIL! - TRY ANOTHER OPTION");
         }
         System.out.println(table);
     }
