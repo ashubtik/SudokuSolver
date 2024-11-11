@@ -6,7 +6,7 @@ import java.util.List;
 
 import static solver.utils.Functions.*;
 
-public class Main {
+public class SudokuSolver {
     public static void main(String[] args) {
         var numbersList = readExcelTable();
 
